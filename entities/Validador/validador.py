@@ -1,34 +1,33 @@
-import time
+from datetime import datetime, timedelta
 
 class Validador:
-    def __init__(self, chave_unica):
-        self.chave_unica = chave_unica
+    def __init__(self, chave_seletor):
+        self.chave_seletor = chave_seletor
         self.ultima_transacao = None
-        self.num_transacoes = 0
-
+        self.contador_transacoes = 0
+    
     def validar_transacao(self, remetente, valor):
-        if remetente.saldo >= valor and self.validar_horario() and self.validar_limite_transacoes():
-            self.ultima_transacao = time.time()
-            self.num_transacoes += 1
-            if self.chave_unica == remetente.chave_unica:
-                return 1  # Transação concluída com sucesso
-            else:
-                return 2  # Transação não concluída devido à chave inválida
-        else:
-            return 0  # Transação não executada
-
-    def validar_horario(self):
-        horario_atual = time.time()
-        if self.ultima_transacao is None or self.ultima_transacao < horario_atual:
-            return True
-        return False
-
-    def validar_limite_transacoes(self):
-        if self.num_transacoes < 1000:
-            return True
-        else:
-            proximo_minuto = int(time.time()) + 60
-            while int(time.time()) < proximo_minuto:
-                pass
-            self.num_transacoes = 0
+        if remetente.saldo < valor:
             return False
+        
+        horario_atual = datetime.now()
+        if self.ultima_transacao is not None and horario_atual <= self.ultima_transacao:
+            return False
+        
+        if self.contador_transacoes > 1000 and horario_atual.second == 0:
+            return False
+        
+        if remetente.chave_seletor != self.chave_seletor:
+            return False
+        
+        self.ultima_transacao = horario_atual
+        self.contador_transacoes += 1
+        return True
+
+    def concluir_transacao(self, transacao):
+        if self.validar_transacao(transacao.remetente, transacao.valor):
+            transacao.status = 1  # Transação concluída com sucesso
+        else:
+            transacao.status = 2  # Transação não aprovada (erro)
+        
+        return transacao

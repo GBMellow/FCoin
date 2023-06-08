@@ -5,6 +5,9 @@ from flask import Flask, jsonify, render_template, request
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
+from Validador import Validador
+validador = Validador(124-965-665)  # Substitua 'chave_seletor' pelo valor correto
+
 app = Flask(__name__)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
@@ -236,3 +239,19 @@ def EditaTransacao(id, status):
 @app.errorhandler(404)
 def page_not_found(error):
     return render_template("page_not_found.html"), 404
+
+@app.route("/transacoes/<int:rem>/<int:reb>/<int:valor>", methods=["POST"])
+def CriaTransacao(rem, reb, valor):
+    if request.method == "POST":
+        objeto = Transacao(
+            remetente=rem, recebedor=reb, valor=valor, status=0, horario=datetime.now()
+        )
+        
+        objeto = validador.concluir_transacao(objeto)
+        
+        db.session.add(objeto)
+        db.session.commit()
+        
+        return jsonify(objeto)
+    else:
+        return jsonify(["Method not allowed"])
