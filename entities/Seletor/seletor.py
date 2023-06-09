@@ -1,57 +1,57 @@
+from typing import List, Tuple
+from Validador.validador import Validador
 import random
-
+import time
 
 class Seletor:
     def __init__(self):
         self.validadores = []
-        self.transacoes_em_espera = []
-        self.flags = {}
 
-    def cadastrar_validador(self, validador):
+    def cadastrar_validador(self, validador: Validador):
         self.validadores.append(validador)
-        self.flags[validador] = 0
 
-    def selecionar_validadores(self, quantidade_minima):
+    def escolher_validadores(self, quantidade_minima: int) -> List[Tuple[Validador, float]]:
         if len(self.validadores) < quantidade_minima:
-            return None  # Transação em espera, pois não há validadores suficientes
+            # Colocar a transação em espera por no máximo 1 minuto
+            time.sleep(60)
 
-        validadores_selecionados = random.sample(self.validadores, random.randint(quantidade_minima, 5))
-        return validadores_selecionados
+        validadores_escolhidos = []
+        total_moedas = sum(validador.saldo for validador in self.validadores)
 
-    def gerar_consenso(self, validadores_selecionados):
-        aprovadas = 0
-        nao_aprovadas = 0
+        for validador in self.validadores:
+            chance = validador.saldo / total_moedas
 
-        for validador in validadores_selecionados:
-            chance_escolha = self.calcular_chance_escolha(validador)
-            if random.random() <= chance_escolha:
-                if validador.validar_transacao():
-                    aprovadas += 1
-                    self.flags[validador] = max(0, self.flags[validador] - 1)
-                else:
-                    nao_aprovadas += 1
-                    self.flags[validador] += 1
+            # Limitar o percentual de chance de escolha entre 5% e 40%
+            chance = max(chance, 0.05)
+            chance = min(chance, 0.4)
 
-        if aprovadas > nao_aprovadas:
-            return 1  # Transação aprovada
+            validadores_escolhidos.append((validador, chance))
+
+        return validadores_escolhidos
+
+    def realizar_transacao(self, validadores_escolhidos: List[Tuple[Validador, float]]) -> bool:
+        status_counts = {0: 0, 1: 0, 2: 0}
+
+        for validador, _ in validadores_escolhidos:
+            # Simulação do status da transação retornada pelo validador
+            status = random.choices([0, 1, 2], weights=[0.4, 0.4, 0.2])[0]
+            status_counts[status] += 1
+
+        # Verificar se o consenso foi gerado com mais de 50% de um status
+        max_status_count = max(status_counts.values())
+        if max_status_count > sum(status_counts.values()) / 2:
+            return True
         else:
-            return 2  # Transação não aprovada
+            return False
 
-    def calcular_chance_escolha(self, validador):
-        saldo_validador = validador.saldo
-        total_saldos = sum(v.saldo for v in self.validadores)
-        percentual = (saldo_validador / total_saldos) * 100
-        percentual = max(5, min(40, percentual))
-        return percentual
+    def distribuir_fcoints(self, validadores_escolhidos: List[Tuple[Validador, float]]):
+        # Simulação da distribuição de FCoins para os validadores participantes
+        for validador, _ in validadores_escolhidos:
+            validador.saldo += 10
 
-    def distribuir_fcoins(self, validadores_selecionados):
-        total_fcoins = 100  # Quantidade de FCoins a ser distribuída
-
-        for validador in validadores_selecionados:
-            chance_escolha = self.calcular_chance_escolha(validador)
-            fcoins_recebidas = (chance_escolha / 100) * total_fcoins
-            validador.saldo += fcoins_recebidas
-
-    def remover_validador(self, validador):
-        self.validadores.remove(validador)
-        del self.flags[validador]
+    def identificar_validador_inconsistente(self, validador: Validador):
+        # Simulação da identificação de validadores inconsistentes
+        validador.flag_alerta += 1
+        if validador.flag_alerta > 2:
+            self.validadores.remove(validador)
+            validador.saldo = 0

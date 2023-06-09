@@ -5,8 +5,40 @@ from flask import Flask, jsonify, render_template, request
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
-from Validador import Validador
-validador = Validador(124-965-665)  # Substitua 'chave_seletor' pelo valor correto
+class Validador:
+    def __init__(self, chave_seletor):
+        self.chave_seletor = chave_seletor
+        self.ultima_transacao = None
+        self.contador_transacoes = 0
+    
+    def validar_transacao(self, remetente_id, valor):
+        remetente = Cliente.query.get(remetente_id)
+        if remetente is None:
+            return False
+
+        if remetente.qtdMoeda < valor:
+            return False
+
+        horario_atual = datetime.now()
+        if self.ultima_transacao is not None and horario_atual <= self.ultima_transacao:
+            return False
+
+        if self.contador_transacoes > 1000 and horario_atual.second == 0:
+            return False
+
+        self.ultima_transacao = horario_atual
+        self.contador_transacoes += 1
+        return True
+
+    def concluir_transacao(self, transacao):
+        if self.validar_transacao(transacao.remetente, transacao.valor):
+            transacao.status = 1  # Transação concluída com sucesso
+        else:
+            transacao.status = 2  # Transação não aprovada (erro)
+        
+        return transacao
+
+validator = Validador(1234)  # Substitua 'chave_seletor' pelo valor correto
 
 app = Flask(__name__)
 
@@ -71,10 +103,10 @@ def ListarCliente():
         return jsonify(clientes)
 
 
-@app.route("/cliente/<string:nome>/<string:senha>/<int:qtnMoedas>", methods=["POST"])
-def InserirCliente(nome, senha, qtnMoedas):
-    if request.method == "POST" and nome != "" and senha != "" and qtnMoedas != "":
-        objeto = Cliente(nome=nome, senha=senha, qtnMoedas=qtnMoedas)
+@app.route("/cliente/<string:nome>/<string:senha>/<int:qtdMoeda>", methods=["POST"])
+def InserirCliente(nome, senha, qtdMoeda):
+    if request.method == "POST" and nome != "" and senha != "" and qtdMoeda != "":
+        objeto = Cliente(nome=nome, senha=senha, qtdMoeda=qtdMoeda)
         db.session.add(objeto)
         db.session.commit()
         return jsonify(objeto)
@@ -91,15 +123,15 @@ def UmCliente(id):
         return jsonify(["Method Not Allowed"])
 
 
-@app.route("/cliente/<int:id>/<int:qtnMoedas>", methods=["POST"])
-def EditarCliente(id, qtnMoedas):
+@app.route("/cliente/<int:id>/<int:qtdMoeda>", methods=["POST"])
+def EditarCliente(id, qtdMoeda):
     if request.method == "POST":
         try:
             varId = id
-            varQTNMoedas = qtnMoedas
+            varqtdMoeda = qtdMoeda
             cliente = Cliente.query.filter_by(id=id).first()
             db.session.commit()
-            cliente.qtnMoedas = qtnMoedas
+            cliente.qtdMoeda = qtdMoeda
             db.session.commit()
             return jsonify(cliente)
         except Exception as e:
@@ -136,7 +168,12 @@ def InserirSeletor(nome, ip):
         objeto = Seletor(nome=nome, ip=ip)
         db.session.add(objeto)
         db.session.commit()
-        return jsonify(objeto)
+        objeto_dict = {
+            "nome": objeto.nome,
+            "ip": objeto.ip
+        }
+
+        return jsonify(objeto_dict)
     else:
         return jsonify(["Method Not Allowed"])
 
@@ -197,19 +234,6 @@ def ListarTransacoes():
         return jsonify(transacoes)
 
 
-@app.route("/transacoes/<int:rem>/<int:reb>/<int:valor>", methods=["POST"])
-def CriaTransacao(rem, reb, valor):
-    if request.method == "POST":
-        objeto = Transacao(
-            remetente=rem, recebedor=reb, valor=valor, status=0, horario=datetime.now()
-        )
-        db.session.add(objeto)
-        db.session.commit()
-        return jsonify(objeto)
-    else:
-        return jsonify(["Method Not Allowed"])
-
-
 @app.route("/transacoes/<int:id>", methods=["GET"])
 def UmaTransacao(id):
     if request.method == "GET":
@@ -247,11 +271,16 @@ def CriaTransacao(rem, reb, valor):
             remetente=rem, recebedor=reb, valor=valor, status=0, horario=datetime.now()
         )
         
-        objeto = validador.concluir_transacao(objeto)
+        objeto = validator.concluir_transacao(objeto)
         
         db.session.add(objeto)
         db.session.commit()
-        
-        return jsonify(objeto)
+        objeto_dict = {
+            "rem": objeto.remetente,
+            "reb": objeto.recebedor,
+            "valor": objeto.valor
+        }
+
+        return jsonify(objeto_dict)
     else:
         return jsonify(["Method not allowed"])
