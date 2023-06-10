@@ -234,6 +234,22 @@ def ListarTransacoes():
         return jsonify(transacoes)
 
 
+@app.route('/transacoes/<int:rem>/<int:reb>/<int:valor>', methods=['POST'])
+def CriaTransacao(rem, reb, valor):
+    if request.method == 'POST':
+        objeto = Transacao(remetente=rem, recebedor=reb, valor=valor, status=0, horario=datetime.now())
+        db.session.add(objeto)
+        db.session.commit()
+
+        seletores = Seletor.query.all()
+        for i in seletores:
+            url = seletores[i].ip + '/transacao/'
+            request.post(url, data=jsonify(object))
+
+        return jsonify(objeto)
+    else:
+        return jsonify(['Method Not Allowed'])
+
 @app.route("/transacoes/<int:id>", methods=["GET"])
 def UmaTransacao(id):
     if request.method == "GET":
@@ -264,23 +280,25 @@ def EditaTransacao(id, status):
 def page_not_found(error):
     return render_template("page_not_found.html"), 404
 
-@app.route("/transacoes/<int:rem>/<int:reb>/<int:valor>", methods=["POST"])
-def CriaTransacao(rem, reb, valor):
-    if request.method == "POST":
-        objeto = Transacao(
-            remetente=rem, recebedor=reb, valor=valor, status=0, horario=datetime.now()
-        )
-        
-        objeto = validator.concluir_transacao(objeto)
-        
-        db.session.add(objeto)
-        db.session.commit()
-        objeto_dict = {
-            "rem": objeto.remetente,
-            "reb": objeto.recebedor,
-            "valor": objeto.valor
-        }
 
-        return jsonify(objeto_dict)
-    else:
-        return jsonify(["Method not allowed"])
+#@app.route("/transacoes/<int:rem>/<int:reb>/<int:valor>", methods=["POST"])
+#def CriaTransacao(rem, reb, valor):
+#    if request.method == "POST":
+#        objeto = Transacao(
+#            remetente=rem, recebedor=reb, valor=valor, status=0, horario=datetime.now()
+#        )
+#
+#        objeto = validator.concluir_transacao(objeto)
+#
+#        db.session.add(objeto)
+#        db.session.commit()
+#        objeto_dict = {
+#            "rem": objeto.remetente,
+#            "reb": objeto.recebedor,
+#            "valor": objeto.valor
+#        }
+#
+#        return jsonify(objeto_dict)
+#    else:
+#        return jsonify(["Method not allowed"])
+
