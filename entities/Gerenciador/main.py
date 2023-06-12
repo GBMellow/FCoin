@@ -5,12 +5,13 @@ from flask import Flask, jsonify, render_template, request
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
+
 class Validador:
     def __init__(self, chave_seletor):
         self.chave_seletor = chave_seletor
         self.ultima_transacao = None
         self.contador_transacoes = 0
-    
+
     def validar_transacao(self, remetente_id, valor):
         remetente = Cliente.query.get(remetente_id)
         if remetente is None:
@@ -35,8 +36,9 @@ class Validador:
             transacao.status = 1  # Transação concluída com sucesso
         else:
             transacao.status = 2  # Transação não aprovada (erro)
-        
+
         return transacao
+
 
 validator = Validador(1234)  # Substitua 'chave_seletor' pelo valor correto
 
@@ -45,7 +47,6 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
 
 
 @dataclass
@@ -158,8 +159,14 @@ def ApagarCliente(id):
 @app.route("/seletor", methods=["GET"])
 def ListarSeletor():
     if request.method == "GET":
-        produtos = Seletor.query.all()
-        return jsonify(produtos)
+        seletores = Seletor.query.all()
+        seletor_dict = []
+
+        for seletor in seletores:
+            seletor_obj = {"nome": seletor.nome, "ip": seletor.ip}
+            seletor_dict.append(seletor_obj)
+
+        return jsonify(seletor_dict)
 
 
 @app.route("/seletor/<string:nome>/<string:ip>", methods=["POST"])
@@ -168,10 +175,7 @@ def InserirSeletor(nome, ip):
         objeto = Seletor(nome=nome, ip=ip)
         db.session.add(objeto)
         db.session.commit()
-        objeto_dict = {
-            "nome": objeto.nome,
-            "ip": objeto.ip
-        }
+        objeto_dict = {"nome": objeto.nome, "ip": objeto.ip}
 
         return jsonify(objeto_dict)
     else:
@@ -231,30 +235,51 @@ def horario():
 def ListarTransacoes():
     if request.method == "GET":
         transacoes = Transacao.query.all()
-        return jsonify(transacoes)
+        transacoes_dict = []
+
+        for transacao in transacoes:
+            transacao_obj = {
+                "id": transacao.id,
+                "remetente": transacao.remetente,
+                "recebedor": transacao.recebedor,
+                "valor": transacao.valor,
+                "status": transacao.status,
+            }
+            transacoes_dict.append(transacao_obj)
+        return jsonify(transacoes_dict)
 
 
-@app.route('/transacoes/<int:rem>/<int:reb>/<int:valor>', methods=['POST'])
+@app.route("/transacoes/<int:rem>/<int:reb>/<int:valor>", methods=["POST"])
 def CriaTransacao(rem, reb, valor):
-    if request.method == 'POST':
-        objeto = Transacao(remetente=rem, recebedor=reb, valor=valor, status=0, horario=datetime.now())
+    if request.method == "POST":
+        objeto = Transacao(
+            remetente=rem, recebedor=reb, valor=valor, status=0, horario=datetime.now()
+        )
         db.session.add(objeto)
         db.session.commit()
 
         seletores = Seletor.query.all()
-        for i in seletores:
-            url = seletores[i].ip + '/transacao/'
-            request.post(url, data=jsonify(object))
+        for seletor in seletores:
+            url = seletor.ip + "/transacao/"
+            request.POST(url, data=jsonify(object))
 
         return jsonify(objeto)
     else:
-        return jsonify(['Method Not Allowed'])
+        return jsonify(["Method Not Allowed"])
+
 
 @app.route("/transacoes/<int:id>", methods=["GET"])
 def UmaTransacao(id):
     if request.method == "GET":
-        objeto = Transacao.query.get(id)
-        return jsonify(objeto)
+        transacao = Transacao.query.get(id)
+        transacao_obj = {
+            "id": transacao.id,
+            "remetente": transacao.remetente,
+            "recebedor": transacao.recebedor,
+            "valor": transacao.valor,
+            "status": transacao.status,
+        }
+        return jsonify(transacao_obj)
     else:
         return jsonify(["Method Not Allowed"])
 
@@ -281,8 +306,8 @@ def page_not_found(error):
     return render_template("page_not_found.html"), 404
 
 
-#@app.route("/transacoes/<int:rem>/<int:reb>/<int:valor>", methods=["POST"])
-#def CriaTransacao(rem, reb, valor):
+# @app.route("/transacoes/<int:rem>/<int:reb>/<int:valor>", methods=["POST"])
+# def CriaTransacao(rem, reb, valor):
 #    if request.method == "POST":
 #        objeto = Transacao(
 #            remetente=rem, recebedor=reb, valor=valor, status=0, horario=datetime.now()
@@ -301,4 +326,3 @@ def page_not_found(error):
 #        return jsonify(objeto_dict)
 #    else:
 #        return jsonify(["Method not allowed"])
-
