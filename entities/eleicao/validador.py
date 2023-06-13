@@ -1,13 +1,14 @@
 from datetime import datetime
 
 import requests
-
+from flask import Flask
 from entities.eleicao import base_url
 from entities.gerenciador.main import Validador
 
+base_url = f"http://192.168.15.17:5000"
 
 class Validar:
-    def validar_transacao(validador, remetente_id, valor):
+    def validar_transacao(self,validador, remetente_id, valor):
         remetente = requests.get(base_url + f"/cliente/{remetente_id}")
         if remetente is None:
             return False
@@ -15,16 +16,14 @@ class Validar:
         if remetente.qtdMoeda < valor:
             return False
 
-        horario_atual = datetime.now()
+        url = f"{base_url}/hora"
+        horario_atual =  self.converter_data(requests.get(url))
+        
         print("\n\nself.ultima_transacao", type(validador.ultima_transacao))
         print("\n\nhorario_atual", horario_atual)
 
-        if type(validador.ultima_transacao) == str:
-            validador.ultima_transacao = datetime.utcnow().strptime(
-                validador.ultima_transacao, "%Y-%m-%d %H:%M:%S.%f"
-            )
-        else:
-            pass
+       
+        validador.ultima_transacao = self.converter_data(validador.ultima_transacao)
         if validador.ultima_transacao is not None and horario_atual <= validador.ultima_transacao:
             return False
 
@@ -39,3 +38,11 @@ class Validar:
             transacao.status = 2  # Transação não aprovada (erro)
 
         return transacao
+    
+    def converter_data(date):
+        if type(date) == str:
+            return datetime.utcnow().strptime(date, "%Y-%m-%d %H:%M:%S.%f")
+        else:
+            return date
+      
+    
