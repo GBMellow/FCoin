@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from entities.Gerenciador.main import Validador
+from entities.gerenciador.main import Validador
 from entities.eleicao import base_url
 
 import requests

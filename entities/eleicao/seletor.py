@@ -2,7 +2,7 @@ import requests
 import time
 import random
 
-from entities.Gerenciador.main import Validador
+from entities.gerenciador.main import Validador
 from entities.eleicao import base_url
 from entities.eleicao.validador import Validar
 
