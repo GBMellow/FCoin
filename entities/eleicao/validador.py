@@ -1,9 +1,11 @@
 from datetime import datetime
 
-from entities.gerenciador.main import Validador
-from entities.eleicao import base_url
-
 import requests
+
+from entities.eleicao import base_url
+from entities.gerenciador.main import Validador
+
+
 class Validar:
     def validar_transacao(self, remetente_id, valor):
         remetente = requests.get(base_url + f"/cliente/{remetente_id}")
@@ -18,7 +20,9 @@ class Validar:
         print("\n\nhorario_atual", horario_atual)
 
         if type(self.ultima_transacao) == str:
-            self.ultima_transacao = datetime.utcnow().strptime(self.ultima_transacao, '%Y-%m-%d %H:%M:%S.%f')
+            self.ultima_transacao = datetime.utcnow().strptime(
+                self.ultima_transacao, "%Y-%m-%d %H:%M:%S.%f"
+            )
         else:
             pass
         if self.ultima_transacao is not None and horario_atual <= self.ultima_transacao:
@@ -38,4 +42,3 @@ class Validar:
             transacao.status = 2  # Transação não aprovada (erro)
 
         return transacao
-

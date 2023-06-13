@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-
+import requests
 from flask import Flask, jsonify, render_template, request
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-import requests
 
 from entities.eleicao.seletor import Seletor
 
@@ -15,6 +14,18 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 base_url = f"http://192.168.15.17:5000"
+
+
+@dataclass
+class Eleicao(db.Model):
+    id: int
+    passo_eleicao: str
+    horario: datetime
+
+    id = db.Column(db.Integer, primary_key=True)
+    passo_eleicao = db.Column(db.String(20), unique=False, nullable=False)
+    horario = db.Column(db.String(20), unique=False, nullable=False)
+
 @dataclass
 class Validador(db.Model):
     id: int
@@ -30,6 +41,7 @@ class Validador(db.Model):
     contador_transacoes = db.Column(db.Integer, unique=False, nullable=False)
     saldo = db.Column(db.Integer, unique=False, nullable=False)
     flags = db.Column(db.Integer, unique=False, nullable=False)
+
 
 @dataclass
 class Cliente(db.Model):
@@ -252,12 +264,13 @@ def CriaTransacao(rem, reb, valor):
             "reb": objeto.recebedor,
             "valor": objeto.valor,
             "status": objeto.status,
-            "horario": objeto.horario
+            "horario": objeto.horario,
         }
 
         return jsonify(objeto_dict)
     else:
         return jsonify(["Method Not Allowed"])
+
 
 @app.route("/transacao/<int:id>", methods=["POST"])
 def ValidarTransacao(id):
@@ -274,6 +287,7 @@ def ValidarTransacao(id):
             return jsonify(e)
     else:
         return jsonify(["Method Not Allowed"])
+
 
 @app.route("/transacoes/<int:id>", methods=["GET"])
 def UmaTransacao(id):
@@ -367,7 +381,10 @@ def InserirValidador(chave_seletor):
         return jsonify(["Method Not Allowed"])
 
 
-@app.route("/validador/<int:id>/<string:ultima_transacao>/<int:contador_transacoes>/<int:saldo>/<int:flags>", methods=["POST"])
+@app.route(
+    "/validador/<int:id>/<string:ultima_transacao>/<int:contador_transacoes>/<int:saldo>/<int:flags>",
+    methods=["POST"],
+)
 def EditarValidador(id, ultima_transacao, contador_transacoes, saldo, flags):
     if request.method == "POST":
         validador = Validador.query.get(id)
@@ -394,6 +411,21 @@ def EditarValidador(id, ultima_transacao, contador_transacoes, saldo, flags):
 @app.route("/validador/<int:id>", methods=["DELETE"])
 def ApagarValidador(id):
     if request.method == "DELETE":
+        objeto = Validador.query.get(id)
+        objeto.saldo = 0
+        db.session.commit()
+        db.session.delete(objeto)
+        db.session.commit()
+
+        data = {"message": "Validador Deletado com Sucesso"}
+
+        return jsonify(data)
+    else:
+        return jsonify(["Method Not Allowed"])
+
+@app.route("/eleicao/<str:passo_eleicao>/<str:horario>", methods=["POST"])
+def SalvarPassoEleicao(passo_eleicao, horario):
+    if request.method == "POST" and passo_eleicao != "" and horario != "":
         objeto = Validador.query.get(id)
         objeto.saldo = 0
         db.session.commit()

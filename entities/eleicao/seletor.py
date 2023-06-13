@@ -1,15 +1,15 @@
-import requests
-import time
 import random
+import time
 
-from entities.gerenciador.main import Validador
+import requests
+
 from entities.eleicao import base_url
 from entities.eleicao.validador import Validar
+from entities.gerenciador.main import Validador
 
 
 class Seletor:
     def calcular_percentual_escolha(self, validador: Validador):
-
         print("\n\nvalidador", validador)
 
         saldo_minimo = 100
@@ -21,8 +21,9 @@ class Seletor:
         saldo = max(saldo_minimo, min(validador.saldo, saldo_maximo))
 
         # Calcula o percentual de escolha proporcional ao saldo
-        percentual = ((saldo - saldo_minimo) / (saldo_maximo - saldo_minimo)
-                      ) * (percentual_maximo - percentual_minimo) + percentual_minimo
+        percentual = ((saldo - saldo_minimo) / (saldo_maximo - saldo_minimo)) * (
+            percentual_maximo - percentual_minimo
+        ) + percentual_minimo
 
         return percentual
 
@@ -34,7 +35,6 @@ class Seletor:
             requests.delete(base_url + f"/validador/{validador.id}")
 
     def eleger_validadores(self, transacao):
-
         quantidade_minima_validadores = 3
         quantidade_maxima_validadores = 5
         espera_maxima_segundos = 60
@@ -77,8 +77,9 @@ class Seletor:
 
         # Escolhe aleatoriamente entre os validadores com base nos percentuais
         validadores_selecionados = random.choices(
-            validadores_ordenados[:quantidade_maxima_validadores], percentuais_normalizados,
-            k=quantidade_minima_validadores
+            validadores_ordenados[:quantidade_maxima_validadores],
+            percentuais_normalizados,
+            k=quantidade_minima_validadores,
         )
         print("\n\nvalidadores_selecionados", validadores_selecionados)
         print("\n\ntransacao", transacao)
@@ -90,7 +91,10 @@ class Seletor:
         # Aguarda por até um minuto para concluir a transação
         tempo_espera = 0
         while tempo_espera < espera_maxima_segundos:
-            transacoes = [validar.concluir_transacao(transacao, validador) for validador in validadores_selecionados]
+            transacoes = [
+                validar.concluir_transacao(transacao, validador)
+                for validador in validadores_selecionados
+            ]
 
             if transacoes:
                 sucesso = transacoes.count(1)
@@ -104,7 +108,6 @@ class Seletor:
                     maioria = 2
 
                 for i in range(len(transacoes)):
-
                     if transacoes[i].status != maioria:
                         validadores_selecionados[i].flags += 1
                         if validadores_selecionados[i].flags >= 2:
@@ -112,8 +115,8 @@ class Seletor:
                     else:
                         pass
 
-                db.session.commit()
-                return transacoes
+                #return transacoes
+                #requests.delete(base_url + f"/validador/{validador.id}")
             else:
                 time.sleep(1)
                 tempo_espera += 1
