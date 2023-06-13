@@ -1,5 +1,6 @@
 import random
 import time
+from datetime import datetime
 
 import requests
 
@@ -10,7 +11,8 @@ from entities.gerenciador.main import Validador
 
 class Seletor:
     def calcular_percentual_escolha(self, validador: Validador):
-        print("\n\nvalidador", validador)
+        log = "\n\nvalidador", validador
+        self.salvar_eleicao(log)
 
         saldo_minimo = 100
         saldo_maximo = 10000
@@ -123,3 +125,11 @@ class Seletor:
 
         # Caso o tempo de espera seja excedido, retorna None (transação em espera)
         return None
+
+    def salvar_eleicao(self, log: str):
+        horario = self.get_horario()
+        requests.post(base_url + f"/eleicao/{log}/{horario}")
+
+    @staticmethod
+    def get_horario():
+        return requests.get(base_url + "/hora")
