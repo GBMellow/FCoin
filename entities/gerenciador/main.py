@@ -11,7 +11,7 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-base_url = f"http://192.168.15.17:5000"
+base_url = "http://192.168.15.17:5000"
 
 
 @dataclass
@@ -23,6 +23,7 @@ class Eleicao(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     passo_eleicao = db.Column(db.String(20), unique=False, nullable=False)
     horario = db.Column(db.String(20), unique=False, nullable=False)
+
 
 @dataclass
 class Validador(db.Model):
@@ -155,7 +156,11 @@ def ListarSeletor():
         seletor_dict = []
 
         for seletor in seletores:
-            seletor_obj = {"nome": seletor.nome, "ip": seletor.ip, "chave": seletor.chave}
+            seletor_obj = {
+                "nome": seletor.nome,
+                "ip": seletor.ip,
+                "chave": seletor.chave,
+            }
             seletor_dict.append(seletor_obj)
 
         return jsonify(seletor_dict)
@@ -184,7 +189,9 @@ def UmSeletor(id):
         return jsonify(["Method Not Allowed"])
 
 
-@app.route("/seletor/<int:id>/<string:nome>/<string:ip>/<string:chave>", methods=["POST"])
+@app.route(
+    "/seletor/<int:id>/<string:nome>/<string:ip>/<string:chave>", methods=["POST"]
+)
 def EditarSeletor(id, nome, ip, chave):
     if request.method == "POST":
         try:
@@ -271,6 +278,7 @@ def CriaTransacao(rem, reb, valor):
     else:
         return jsonify(["Method Not Allowed"])
 
+
 @app.route("/transacoes/<int:id>", methods=["GET"])
 def UmaTransacao(id):
     if request.method == "GET":
@@ -287,7 +295,7 @@ def UmaTransacao(id):
         return jsonify(["Method Not Allowed"])
 
 
-@app.route("/transactions/<int:id>/<int:status>", methods=["POST"])
+@app.route("/transacoes/<int:id>/<int:status>", methods=["POST"])
 def EditaTransacao(id, status):
     if request.method == "POST":
         try:
