@@ -6,8 +6,6 @@ from flask import Flask, jsonify, render_template, request
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
-from entities.eleicao.seletor import Seletor
-
 app = Flask(__name__)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
@@ -101,10 +99,10 @@ def ListarCliente():
 @app.route("/cliente/<string:nome>/<string:senha>/<int:qtdMoeda>", methods=["POST"])
 def InserirCliente(nome, senha, qtdMoeda):
     if request.method == "POST" and nome != "" and senha != "" and qtdMoeda != "":
-        objeto = Cliente(nome=nome, senha=senha, qtdMoeda=qtdMoeda)
-        db.session.add(objeto)
+        cliente = Cliente(nome=nome, senha=senha, qtdMoeda=qtdMoeda)
+        db.session.add(cliente)
         db.session.commit()
-        return jsonify(objeto)
+        return jsonify(cliente)
     else:
         return jsonify(["Method Not Allowed"])
 
@@ -112,8 +110,8 @@ def InserirCliente(nome, senha, qtdMoeda):
 @app.route("/cliente/<int:id>", methods=["GET"])
 def UmCliente(id):
     if request.method == "GET":
-        objeto = Cliente.query.get(id)
-        return jsonify(objeto)
+        cliente = Cliente.query.get(id)
+        return jsonify(cliente)
     else:
         return jsonify(["Method Not Allowed"])
 
@@ -122,14 +120,12 @@ def UmCliente(id):
 def EditarCliente(id, qtdMoeda):
     if request.method == "POST":
         try:
-            varId = id
-            varqtdMoeda = qtdMoeda
             cliente = Cliente.query.filter_by(id=id).first()
             db.session.commit()
             cliente.qtdMoeda = qtdMoeda
             db.session.commit()
             return jsonify(cliente)
-        except Exception as e:
+        except Exception as _:
             data = {"message": "Atualização não realizada"}
             return jsonify(data)
     else:
@@ -139,8 +135,8 @@ def EditarCliente(id, qtdMoeda):
 @app.route("/cliente/<int:id>", methods=["DELETE"])
 def ApagarCliente(id):
     if request.method == "DELETE":
-        objeto = Cliente.query.get(id)
-        db.session.delete(objeto)
+        cliente = Cliente.query.get(id)
+        db.session.delete(cliente)
         db.session.commit()
 
         data = {"message": "Cliente Deletado com Sucesso"}
@@ -166,12 +162,12 @@ def ListarSeletor():
 @app.route("/seletor/<string:nome>/<string:ip>", methods=["POST"])
 def InserirSeletor(nome, ip):
     if request.method == "POST" and nome != "" and ip != "":
-        objeto = Seletor(nome=nome, ip=ip)
-        db.session.add(objeto)
+        seletor = Seletor(nome=nome, ip=ip)
+        db.session.add(seletor)
         db.session.commit()
-        objeto_dict = {"nome": objeto.nome, "ip": objeto.ip}
+        seletor_dict = {"nome": seletor.nome, "ip": seletor.ip}
 
-        return jsonify(objeto_dict)
+        return jsonify(seletor_dict)
     else:
         return jsonify(["Method Not Allowed"])
 
@@ -179,8 +175,8 @@ def InserirSeletor(nome, ip):
 @app.route("/seletor/<int:id>", methods=["GET"])
 def UmSeletor(id):
     if request.method == "GET":
-        produto = Seletor.query.get(id)
-        return jsonify(produto)
+        seletor = Seletor.query.get(id)
+        return jsonify(seletor)
     else:
         return jsonify(["Method Not Allowed"])
 
@@ -189,15 +185,13 @@ def UmSeletor(id):
 def EditarSeletor(id, nome, ip):
     if request.method == "POST":
         try:
-            varNome = nome
-            varIp = ip
-            validador = Seletor.query.filter_by(id=id).first()
+            seletor = Seletor.query.filter_by(id=id).first()
             db.session.commit()
-            validador.nome = varNome
-            validador.ip = varIp
+            seletor.nome = nome
+            seletor.ip = ip
             db.session.commit()
-            return jsonify(validador)
-        except Exception as e:
+            return jsonify(seletor)
+        except Exception as _:
             data = {"message": "Atualização não realizada"}
             return jsonify(data)
     else:
@@ -207,8 +201,8 @@ def EditarSeletor(id, nome, ip):
 @app.route("/seletor/<int:id>", methods=["DELETE"])
 def ApagarSeletor(id):
     if request.method == "DELETE":
-        objeto = Seletor.query.get(id)
-        db.session.delete(objeto)
+        seletor = Seletor.query.get(id)
+        db.session.delete(seletor)
         db.session.commit()
 
         data = {"message": "Validador Deletado com Sucesso"}
@@ -221,8 +215,8 @@ def ApagarSeletor(id):
 @app.route("/hora", methods=["GET"])
 def horario():
     if request.method == "GET":
-        objeto = datetime.now()
-        return jsonify(objeto)
+        horario = datetime.now()
+        return jsonify(horario)
 
 
 @app.route("/transacoes", methods=["GET"])
@@ -246,48 +240,30 @@ def ListarTransacoes():
 @app.route("/transacoes/<int:rem>/<int:reb>/<int:valor>", methods=["POST"])
 def CriaTransacao(rem, reb, valor):
     if request.method == "POST":
-        objeto = Transacao(
+        transacao = Transacao(
             remetente=rem, recebedor=reb, valor=valor, status=0, horario=datetime.now()
         )
-        db.session.add(objeto)
+        db.session.add(transacao)
         db.session.commit()
 
-        objeto = Transacao.query.all()[-1]
-        print("\n\nObjeto:", objeto.id)
+        transacao = Transacao.query.all()[-1]
+        print("\n\nObjeto:", transacao.id)
         seletores = Seletor.query.all()
         for seletor in seletores:
-            url = "http://" + seletor.ip + f"/transacao/{objeto.id}"
+            url = "http://" + seletor.ip + f"/transacao/{transacao.id}"
             requests.post(url)
 
         objeto_dict = {
-            "rem": objeto.remetente,
-            "reb": objeto.recebedor,
-            "valor": objeto.valor,
-            "status": objeto.status,
-            "horario": objeto.horario,
+            "rem": transacao.remetente,
+            "reb": transacao.recebedor,
+            "valor": transacao.valor,
+            "status": transacao.status,
+            "horario": transacao.horario,
         }
 
         return jsonify(objeto_dict)
     else:
         return jsonify(["Method Not Allowed"])
-
-
-@app.route("/transacao/<int:id>", methods=["POST"])
-def ValidarTransacao(id):
-    if request.method == "POST":
-        try:
-            objeto = Transacao.query.get(id)
-            print("\n\nObjeto:", objeto)
-            response = Seletor.eleger_validadores(objeto)
-            print("\n\nresponse: ", response)
-            data = {"message": "transação validada com sucesso"}
-            return jsonify(data)
-        except Exception as e:
-            data = {"message": "transação não validada"}
-            return jsonify(e)
-    else:
-        return jsonify(["Method Not Allowed"])
-
 
 @app.route("/transacoes/<int:id>", methods=["GET"])
 def UmaTransacao(id):
@@ -314,7 +290,7 @@ def EditaTransacao(id, status):
             objeto.status = status
             db.session.commit()
             return jsonify(objeto)
-        except Exception as e:
+        except Exception as _:
             data = {"message": "transação não atualizada"}
             return jsonify(data)
     else:
@@ -367,7 +343,7 @@ def InserirValidador(chave_seletor):
         )
         db.session.add(validador)
         db.session.commit()
-        objeto_dict = {
+        validador_dict = {
             "id": validador.id,
             "chave_seletor": validador.chave_seletor,
             "ultima_transacao": validador.ultima_transacao,
@@ -376,7 +352,7 @@ def InserirValidador(chave_seletor):
             "flags": validador.flags,
         }
 
-        return jsonify(objeto_dict)
+        return jsonify(validador_dict)
     else:
         return jsonify(["Method Not Allowed"])
 
@@ -394,7 +370,7 @@ def EditarValidador(id, ultima_transacao, contador_transacoes, saldo, flags):
         validador.flags = flags
         db.session.commit()
 
-        objeto_dict = {
+        validador_dict = {
             "id": validador.id,
             "chave_seletor": validador.chave_seletor,
             "ultima_transacao": validador.ultima_transacao,
@@ -403,7 +379,7 @@ def EditarValidador(id, ultima_transacao, contador_transacoes, saldo, flags):
             "flags": validador.flags,
         }
 
-        return jsonify(objeto_dict)
+        return jsonify(validador_dict)
     else:
         return jsonify(["Method Not Allowed"])
 
@@ -411,29 +387,27 @@ def EditarValidador(id, ultima_transacao, contador_transacoes, saldo, flags):
 @app.route("/validador/<int:id>", methods=["DELETE"])
 def ApagarValidador(id):
     if request.method == "DELETE":
-        objeto = Validador.query.get(id)
-        objeto.saldo = 0
+        validador = Validador.query.get(id)
+        validador.saldo = 0
         db.session.commit()
-        db.session.delete(objeto)
+        db.session.delete(validador)
         db.session.commit()
-
         data = {"message": "Validador Deletado com Sucesso"}
 
         return jsonify(data)
     else:
         return jsonify(["Method Not Allowed"])
 
-@app.route("/eleicao/<str:passo_eleicao>/<str:horario>", methods=["POST"])
+
+@app.route("/eleicao/<string:passo_eleicao>/<string:horario>", methods=["POST"])
 def SalvarPassoEleicao(passo_eleicao, horario):
     if request.method == "POST" and passo_eleicao != "" and horario != "":
-        objeto = Validador.query.get(id)
-        objeto.saldo = 0
-        db.session.commit()
-        db.session.delete(objeto)
+        eleicao = Eleicao(passo_eleicao=passo_eleicao, horario=horario)
+        db.session.add(eleicao)
         db.session.commit()
 
-        data = {"message": "Validador Deletado com Sucesso"}
+        objeto_dict = {"passo_eleicao": eleicao.passo_eleicao, "horario": eleicao.horario}
 
-        return jsonify(data)
+        return jsonify(objeto_dict)
     else:
         return jsonify(["Method Not Allowed"])
