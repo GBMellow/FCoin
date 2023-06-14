@@ -52,7 +52,7 @@ class Validar:
     def get_data(url):
         response = requests.get(url)
         if(response.status_code == 200):
-            return jsonify(response.text)
+            return response.json()
         else:
             raise Exception("Erro ao trazer o horario_atual")
 
