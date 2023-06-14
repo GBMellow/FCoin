@@ -6,8 +6,6 @@ from flask import Flask, jsonify, render_template, request
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
-from entities.eleicao.seletor import Seletor
-
 app = Flask(__name__)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///site.db"
@@ -60,10 +58,12 @@ class Seletor(db.Model):
     id: int
     nome: str
     ip: str
+    chave: str
 
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(20), unique=False, nullable=False)
     ip = db.Column(db.String(15), unique=False, nullable=False)
+    chave = db.Column(db.String(20), unique=False, nullable=False)
 
 
 class Transacao(db.Model):
@@ -157,19 +157,19 @@ def ListarSeletor():
         seletor_dict = []
 
         for seletor in seletores:
-            seletor_obj = {"nome": seletor.nome, "ip": seletor.ip}
+            seletor_obj = {"nome": seletor.nome, "ip": seletor.ip, "chave": seletor.chave}
             seletor_dict.append(seletor_obj)
 
         return jsonify(seletor_dict)
 
 
-@app.route("/seletor/<string:nome>/<string:ip>", methods=["POST"])
-def InserirSeletor(nome, ip):
-    if request.method == "POST" and nome != "" and ip != "":
-        objeto = Seletor(nome=nome, ip=ip)
+@app.route("/seletor/<string:nome>/<string:ip>/<string:chave>", methods=["POST"])
+def InserirSeletor(nome, ip, chave):
+    if request.method == "POST" and nome != "" and ip != "" and chave != "":
+        objeto = Seletor(nome=nome, ip=ip, chave=chave)
         db.session.add(objeto)
         db.session.commit()
-        objeto_dict = {"nome": objeto.nome, "ip": objeto.ip}
+        objeto_dict = {"nome": objeto.nome, "ip": objeto.ip, "chave": objeto.chave}
 
         return jsonify(objeto_dict)
     else:
@@ -180,23 +180,28 @@ def InserirSeletor(nome, ip):
 def UmSeletor(id):
     if request.method == "GET":
         produto = Seletor.query.get(id)
-        return jsonify(produto)
+        objeto_dict = {"nome": produto.nome, "ip": produto.ip, "chave": produto.chave}
+        return jsonify(objeto_dict)
     else:
         return jsonify(["Method Not Allowed"])
 
 
-@app.route("/seletor/<int:id>/<string:nome>/<string:ip>", methods=["POST"])
-def EditarSeletor(id, nome, ip):
+@app.route("/seletor/<int:id>/<string:nome>/<string:ip>/<string:chave>", methods=["POST"])
+def EditarSeletor(id, nome, ip, chave):
     if request.method == "POST":
         try:
             varNome = nome
             varIp = ip
+            varChave = chave
             validador = Seletor.query.filter_by(id=id).first()
             db.session.commit()
             validador.nome = varNome
             validador.ip = varIp
+            validador.chave = varChave
             db.session.commit()
-            return jsonify(validador)
+            data = {"message": "Atualização bem sucedida"}
+            return jsonify(data)
+
         except Exception as e:
             data = {"message": "Atualização não realizada"}
             return jsonify(data)
@@ -270,24 +275,6 @@ def CriaTransacao(rem, reb, valor):
         return jsonify(objeto_dict)
     else:
         return jsonify(["Method Not Allowed"])
-
-
-@app.route("/transacao/<int:id>", methods=["POST"])
-def ValidarTransacao(id):
-    if request.method == "POST":
-        try:
-            objeto = Transacao.query.get(id)
-            print("\n\nObjeto:", objeto)
-            response = Seletor.eleger_validadores(objeto)
-            print("\n\nresponse: ", response)
-            data = {"message": "transação validada com sucesso"}
-            return jsonify(data)
-        except Exception as e:
-            data = {"message": "transação não validada"}
-            return jsonify(e)
-    else:
-        return jsonify(["Method Not Allowed"])
-
 
 @app.route("/transacoes/<int:id>", methods=["GET"])
 def UmaTransacao(id):
@@ -423,7 +410,7 @@ def ApagarValidador(id):
     else:
         return jsonify(["Method Not Allowed"])
 
-@app.route("/eleicao/<str:passo_eleicao>/<str:horario>", methods=["POST"])
+@app.route("/eleicao/<string:passo_eleicao>/<string:horario>", methods=["POST"])
 def SalvarPassoEleicao(passo_eleicao, horario):
     if request.method == "POST" and passo_eleicao != "" and horario != "":
         objeto = Validador.query.get(id)
