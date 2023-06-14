@@ -58,10 +58,12 @@ class Seletor(db.Model):
     id: int
     nome: str
     ip: str
+    chave: str
 
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(20), unique=False, nullable=False)
     ip = db.Column(db.String(15), unique=False, nullable=False)
+    chave = db.Column(db.String(20), unique=False, nullable=False)
 
 
 class Transacao(db.Model):
@@ -153,19 +155,19 @@ def ListarSeletor():
         seletor_dict = []
 
         for seletor in seletores:
-            seletor_obj = {"nome": seletor.nome, "ip": seletor.ip}
+            seletor_obj = {"nome": seletor.nome, "ip": seletor.ip, "chave": seletor.chave}
             seletor_dict.append(seletor_obj)
 
         return jsonify(seletor_dict)
 
 
-@app.route("/seletor/<string:nome>/<string:ip>", methods=["POST"])
-def InserirSeletor(nome, ip):
-    if request.method == "POST" and nome != "" and ip != "":
-        seletor = Seletor(nome=nome, ip=ip)
+@app.route("/seletor/<string:nome>/<string:ip>/<string:chave>", methods=["POST"])
+def InserirSeletor(nome, ip, chave):
+    if request.method == "POST" and nome != "" and ip != "" and chave != "":
+        seletor = Seletor(nome=nome, ip=ip, chave=chave)
         db.session.add(seletor)
         db.session.commit()
-        seletor_dict = {"nome": seletor.nome, "ip": seletor.ip}
+        seletor_dict = {"nome": seletor.nome, "ip": seletor.ip, "chave": seletor.chave}
 
         return jsonify(seletor_dict)
     else:
@@ -176,21 +178,25 @@ def InserirSeletor(nome, ip):
 def UmSeletor(id):
     if request.method == "GET":
         seletor = Seletor.query.get(id)
-        return jsonify(seletor)
+        seletor_dict = {"nome": seletor.nome, "ip": seletor.ip, "chave": seletor.chave}
+        return jsonify(seletor_dict)
     else:
         return jsonify(["Method Not Allowed"])
 
 
-@app.route("/seletor/<int:id>/<string:nome>/<string:ip>", methods=["POST"])
-def EditarSeletor(id, nome, ip):
+@app.route("/seletor/<int:id>/<string:nome>/<string:ip>/<string:chave>", methods=["POST"])
+def EditarSeletor(id, nome, ip, chave):
     if request.method == "POST":
         try:
             seletor = Seletor.query.filter_by(id=id).first()
             db.session.commit()
             seletor.nome = nome
             seletor.ip = ip
+            seletor.chave = chave
             db.session.commit()
-            return jsonify(seletor)
+            data = {"message": "Atualização bem sucedida"}
+            return jsonify(data)
+
         except Exception as _:
             data = {"message": "Atualização não realizada"}
             return jsonify(data)
@@ -406,8 +412,8 @@ def SalvarPassoEleicao(passo_eleicao, horario):
         db.session.add(eleicao)
         db.session.commit()
 
-        objeto_dict = {"passo_eleicao": eleicao.passo_eleicao, "horario": eleicao.horario}
+        data = {"message": "Validador Deletado com Sucesso"}
 
-        return jsonify(objeto_dict)
+        return jsonify(data)
     else:
         return jsonify(["Method Not Allowed"])

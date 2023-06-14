@@ -1,26 +1,29 @@
 import random
 import time
-from datetime import datetime
+import json
 
 import requests
 
-from entities.eleicao import base_url
-from entities.eleicao.validador import Validar
-from entities.gerenciador.main import Validador
+base_url = f"http://localhost:5000"
 
+from validador import Validar
+import requests
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
 
 class Seletor:
-    def calcular_percentual_escolha(self, validador: Validador):
+    def calcular_percentual_escolha(self, validador):
         log = "\n\nvalidador", validador
-        self.salvar_eleicao(log)
+        self.salvar_eleicao(Seletor, log)
 
         saldo_minimo = 100
-        saldo_maximo = 10000
+        saldo_maximo = 100000
         percentual_minimo = 5
         percentual_maximo = 40
 
         # Garante que o saldo esteja dentro do intervalo
-        saldo = max(saldo_minimo, min(validador.saldo, saldo_maximo))
+        saldo = max(saldo_minimo, min(validador['saldo'], saldo_maximo))
 
         # Calcula o percentual de escolha proporcional ao saldo
         percentual = ((saldo - saldo_minimo) / (saldo_maximo - saldo_minimo)) * (
@@ -30,11 +33,11 @@ class Seletor:
         return percentual
 
     def receber_fcoins(self, quantidade, validador):
-        validador.saldo += quantidade
+        validador['saldo'] += quantidade
 
-    def verificar_eliminar_validador(self, validador: Validador):
-        if validador.flags > 2:
-            requests.delete(base_url + f"/validador/{validador.id}")
+    def verificar_eliminar_validador(self, validador):
+        if validador.flags >= 2:
+            requests.delete(base_url + f"/validador/{validador['id']}")
 
     def eleger_validadores(self, transacao):
         quantidade_minima_validadores = 3
@@ -42,12 +45,14 @@ class Seletor:
         espera_maxima_segundos = 60
         validadores_disponiveis = []
         validar = Validar()
-        validador: Validador
 
         # Recupera os validadores disponíveis com saldo mínimo suficiente
         validadores = requests.get(base_url + "/validador")
-        for validador in validadores:
-            if validador.saldo >= 100:
+        objetosValidadores = validadores.json()
+        print("\n\nobjetosValidadores: ", objetosValidadores)
+        for validador in objetosValidadores:            
+            print("\n\nvalidador: ", validador)
+            if validador['saldo'] >= 100:
                 validadores_disponiveis.append(validador)
 
         print("\n\nvalidadores_disponiveis", validadores_disponiveis)
@@ -57,14 +62,14 @@ class Seletor:
             return None
 
         # Ordena os validadores disponíveis com base no saldo (do menor para o maior)
-        validadores_ordenados = sorted(validadores_disponiveis, key=lambda v: v.saldo)
+        validadores_ordenados = sorted(validadores_disponiveis, key=lambda v: v['saldo'])
         print("\n\nvalidadores_ordenados", validadores_ordenados)
 
         validadores_ordenados = validadores_ordenados[:quantidade_maxima_validadores]
 
         # Calcula o percentual de chance de escolha para cada validador
         percentuais_escolha = [
-            self.calcular_percentual_escolha(v) for v in validadores_ordenados
+            self.calcular_percentual_escolha(Seletor, v) for v in validadores_ordenados
         ]
 
         # Limita o número de validadores ao máximo permitido
@@ -88,7 +93,7 @@ class Seletor:
 
         # Atualiza o contador dos validadores selecionados
         for validador in validadores_selecionados:
-            validador.contador_transacoes += 1
+            validador['contador_transacoes'] += 1
 
         # Aguarda por até um minuto para concluir a transação
         tempo_espera = 0
@@ -110,14 +115,14 @@ class Seletor:
                     maioria = 2
 
                 for i in range(len(transacoes)):
-                    if transacoes[i].status != maioria:
-                        validadores_selecionados[i].flags += 1
-                        if validadores_selecionados[i].flags >= 2:
-                            validadores_selecionados[i].saldo = 0
+                    if transacoes[i]['status'] != maioria:
+                        validadores_selecionados[i]['flags'] += 1
+                        if validadores_selecionados[i]['flags'] >= 2:
+                            validadores_selecionados[i]['saldo'] = 0
                     else:
                         pass
 
-                #return transacoes
+                return True
                 #requests.delete(base_url + f"/validador/{validador.id}")
             else:
                 time.sleep(1)
@@ -133,3 +138,18 @@ class Seletor:
     @staticmethod
     def get_horario():
         return requests.get(base_url + "/hora")
+
+@app.route("/transacao/<int:id>", methods=["POST"])
+def ValidarTransacao(id):
+    if request.method == "POST":
+        try:
+            transacao = requests.get(base_url + f"/transacoes/{id}")
+            response = Seletor.eleger_validadores(Seletor, transacao.json())
+            print("\n\nresponse: ", response)
+            data = {"message": "transação validada com sucesso"}
+            return jsonify(data)
+        except Exception as e:
+            data = {"message": "transação não validada"}
+            return jsonify(e)
+    else:
+        return jsonify(["Method Not Allowed"])
