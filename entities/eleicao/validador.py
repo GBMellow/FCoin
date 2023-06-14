@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import requests
-from flask import Flask
+from flask import Flask,jsonify
 from entities.eleicao import base_url
 from entities.gerenciador.main import Validador
 
@@ -17,7 +17,7 @@ class Validar:
             return False
 
         url = f"{base_url}/hora"
-        horario_atual =  self.converter_data(requests.get(url))
+        horario_atual =  self.converter_data(self.get_data(url))
         
         print("\n\nself.ultima_transacao", type(validador.ultima_transacao))
         print("\n\nhorario_atual", horario_atual)
@@ -41,8 +41,19 @@ class Validar:
     
     def converter_data(date):
         if type(date) == str:
-            return datetime.utcnow().strptime(date, "%Y-%m-%d %H:%M:%S.%f")
+            try:
+                data_convertida = datetime.utcnow().strptime(date, "%Y-%m-%d %H:%M:%S.%f")
+                return data_convertida
+            except:
+                raise Exception("Erro ao converter a data") 
         else:
             return date
-      
+        
+    def get_data(url):
+        response = requests.get(url)
+        if(response.status_code == 200):
+            return jsonify(response.text)
+        else:
+            raise Exception("Erro ao trazer o horario_atual")
+
     
