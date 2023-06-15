@@ -99,13 +99,6 @@ class Seletor:
         log = f"validadores selecionados {validadores_selecionados}"
         self.salvar_eleicao(log)
 
-        # Atualiza o contador dos validadores selecionados
-        for validador in validadores_selecionados:
-            validador["contador_transacoes"] += 1
-
-            log = f"aumentando transações totais validador {validador['id']}"
-            self.salvar_eleicao(log)
-
         # Aguarda por até um minuto para concluir a transação
         tempo_espera = 0
         while tempo_espera < espera_maxima_segundos:
@@ -118,8 +111,6 @@ class Seletor:
                 sucesso = transacoes.count(1)
                 erro = transacoes.count(2)
 
-                maioria = 0
-
                 if sucesso > erro:
                     maioria = 1
                 else:
@@ -131,18 +122,35 @@ class Seletor:
                 for i in range(len(transacoes)):
                     if transacoes[i]["status"] != maioria:
                         validadores_selecionados[i]["flags"] += 1
+                        validadores_selecionados[i]["contador_transacoes"] = 0
 
                         if validadores_selecionados[i]["flags"] >= 2:
                             validadores_selecionados[i]["saldo"] = 0
                             log = f"eliminando {validadores_selecionados[i]['id']}"
                             self.salvar_eleicao(log)
-                        else:
-                            quantidade = transacao["valor"]
-                            validadores_selecionados[i]["saldo"] += quantidade
-                            log = f"validador {validadores_selecionados[i]['id']} recebendo saldo = {quantidade}"
+                    else:
+                        quantidade = transacao["valor"]
+                        validadores_selecionados[i]["saldo"] += quantidade
+                        log = f"validador {validadores_selecionados[i]['id']} recebendo saldo = {quantidade}"
+                        self.salvar_eleicao(log)
+
+                        if validadores_selecionados[i]["flags"] != 0:
+                            validadores_selecionados[i]["contador_transacoes"] += 1
+
+                            if (
+                                validadores_selecionados[i]["contador_transacoes"]
+                                == 1000
+                            ):
+                                validadores_selecionados[i]["flags"] = 0
+                                validadores_selecionados[i]["contador_transacoes"] = 0
+
+                                log = f"zerando flags transações totais validador {validadores_selecionados['id']}"
+                                self.salvar_eleicao(log)
+
+                            log = f"aumentando transações totais validador {validadores_selecionados['id']}"
                             self.salvar_eleicao(log)
 
-                        self.salvar_validador(validadores_selecionados[i])
+                    self.salvar_validador(validadores_selecionados[i])
 
                 requests.post(base_url + f"/transacoes/{transacao['id']}/{maioria}")
                 return True
