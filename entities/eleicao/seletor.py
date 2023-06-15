@@ -137,6 +137,9 @@ class Seletor:
                         if validadores_selecionados[i]["flags"] != 0:
                             validadores_selecionados[i]["contador_transacoes"] += 1
 
+                            log = f"aumentando transações totais validador {validadores_selecionados['id']}"
+                            self.salvar_eleicao(log)
+
                             if (
                                 validadores_selecionados[i]["contador_transacoes"]
                                 == 1000
@@ -146,9 +149,6 @@ class Seletor:
 
                                 log = f"zerando flags transações totais validador {validadores_selecionados['id']}"
                                 self.salvar_eleicao(log)
-
-                            log = f"aumentando transações totais validador {validadores_selecionados['id']}"
-                            self.salvar_eleicao(log)
 
                     self.salvar_validador(validadores_selecionados[i])
 
