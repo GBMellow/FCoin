@@ -1,4 +1,4 @@
-from entities.gerenciador.main import app, db
+from entities.Gerenciador.main import app, db
 
 if __name__ == '__main__':
     with app.app_context():
