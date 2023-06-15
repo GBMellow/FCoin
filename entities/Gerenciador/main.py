@@ -228,7 +228,7 @@ def ApagarSeletor(id):
 @app.route("/hora", methods=["GET"])
 def horario():
     if request.method == "GET":
-        horario = datetime.now()
+        horario = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return jsonify(horario)
 
 

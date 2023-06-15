@@ -9,6 +9,8 @@ class Validar:
     def validar_transacao(self, validador, remetente_id, valor):
         remetente = requests.get(base_url + f"/cliente/{remetente_id}")
         remetente = remetente.json()
+        print("\n\nremetente: ", remetente)
+        print("\n\nremetente['qtdMoeda']: ", remetente["qtdMoeda"])
         if remetente is None:
             return False
 
@@ -55,7 +57,10 @@ class Validar:
                 )
                 return data_convertida
             except:
-                raise Exception("Erro ao converter a data")
+                data_convertida = datetime.utcnow().strptime(
+                    date, "%Y-%m-%d %H:%M:%S"
+                )
+                return data_convertida
         else:
             return date
 

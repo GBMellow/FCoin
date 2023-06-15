@@ -107,9 +107,14 @@ class Seletor:
                 for validador in validadores_selecionados
             ]
 
+            status = []
+            for t in transacoes:
+                status.append(t['status'])
+
+
             if transacoes:
-                sucesso = transacoes.count(1)
-                erro = transacoes.count(2)
+                sucesso = status.count(1)
+                erro = status.count(2)
 
                 if sucesso > erro:
                     maioria = 1
@@ -137,7 +142,7 @@ class Seletor:
                         if validadores_selecionados[i]["flags"] != 0:
                             validadores_selecionados[i]["contador_transacoes"] += 1
 
-                            log = f"aumentando transações totais validador {validadores_selecionados['id']}"
+                            log = f"aumentando transações totais validador {validadores_selecionados[i]['id']}"
                             self.salvar_eleicao(log)
 
                             if (
@@ -147,8 +152,11 @@ class Seletor:
                                 validadores_selecionados[i]["flags"] = 0
                                 validadores_selecionados[i]["contador_transacoes"] = 0
 
-                                log = f"zerando flags transações totais validador {validadores_selecionados['id']}"
+                                log = f"zerando flags transações totais validador {validadores_selecionados[i]['id']}"
                                 self.salvar_eleicao(log)
+
+                            log = f"aumentando transações totais validador {validadores_selecionados[i]['id']}"
+                            self.salvar_eleicao(log)
 
                     self.salvar_validador(validadores_selecionados[i])
 
