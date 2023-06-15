@@ -45,6 +45,8 @@ class Validar:
         else:
             transacao["status"] = 2  # Transação não aprovada (erro)
 
+        return transacao
+
     def converter_data(self, date):
         if type(date) == str:
             try:
